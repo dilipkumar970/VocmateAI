@@ -1,7 +1,6 @@
 package com.Vanmate.Vocmate.Controller;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -12,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/calls")
 public class CallWebhookController {
 
-    @PostMapping ("/incoming call")
+    @PostMapping ("/webhook")
     public ResponseEntity<String> handleIncomingCall() {
         // TwiML response to speak something to the caller
         // This method will run whenever a POST request is sent to /api/calls/webhook
@@ -21,7 +20,7 @@ public class CallWebhookController {
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + // XMl Declaration for SpringBoot
                         "<Response>" +
                         "<Say voice=\"alice\" language=\"en-US\">Hello! Your call is connected to VocMate test webhook. Thank you!</Say>" +
-                        "<Response>";
+                        "</Response>";
 
         // the HTTP response with a 200 OK status
         // Content-Type header to application/xml (because Twilio expects XML)
