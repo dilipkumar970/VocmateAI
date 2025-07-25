@@ -16,7 +16,7 @@ import java.util.Map;
 @RequestMapping("/api/calls")
 public class CallWebhookController {
 
-    private TwilioService twilioService;
+        private final TwilioService twilioService;
 
         @PostMapping("/webhook")
         public ResponseEntity<String> handleIncomingCall(){
@@ -27,12 +27,19 @@ public class CallWebhookController {
         public ResponseEntity<String> handleRecordingCallBack(@RequestParam Map<String , String> params){
 
            // Extract RecordingUrl from Twilio's request
-            String recordingurl = params.get("RecordingUrl");
+            String recordingUrl = params.get("RecordingUrl");
 
             // Call service to process the audio
-            twilioService.processRecording(recordingurl);
+            twilioService.processRecording(recordingUrl);
 
-            return  ResponseEntity.ok("Recording Received Sucessfully");
+            return  ResponseEntity.ok("Recording Received Successfully");
+        }
+
+        @PostMapping("/test")
+        public ResponseEntity<String> whisperTest(){
+            String sampleFile = "C:\\web dev\\whisper.cpp\\samples\\english.mp3";
+            String result = twilioService.transcribeSample(sampleFile);
+            return ResponseEntity.ok(result);
         }
 }
 

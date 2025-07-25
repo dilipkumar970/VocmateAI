@@ -10,7 +10,14 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class TwilioService {
 
+
     private final WhisperService whsiperService;
+    private final RecordingService recordingService;
+
+    public  String transcribeSample(String sampleFile) {
+        return whsiperService.transcribeAudio(sampleFile);
+
+    }
 
     public ResponseEntity<String> buildTwiMLGreeting() {
         // TwiML response to speak something to the caller
@@ -34,7 +41,9 @@ public class TwilioService {
     public void processRecording(String recordingUrl){
 
         //recordingUrl is like: https://api.twilio.com/XXXXXX.wav
+//        Download the audio locally
+        String localFilePath= recordingService.downloadRecording(recordingUrl);
         // Here we pass it to Whisper for transcription
-        whsiperService.transcribeAudio(recordingUrl);
+        whsiperService.transcribeAudio(localFilePath);
     }
 }
