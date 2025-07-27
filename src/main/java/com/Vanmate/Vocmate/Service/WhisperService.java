@@ -22,45 +22,57 @@ public class WhisperService {
     }
 
     public WhisperResult transcribeAudio(String audioFilePath) {
+        //  Custom result object to hold detected language and text
         WhisperResult result = new WhisperResult();
+
+        //  Builder to collect transcription lines
         StringBuilder textBuilder = new StringBuilder();
 
         try {
+            //  Build the process to run whisper-cli.exe
             ProcessBuilder pb = new ProcessBuilder(
                     WHISPER_EXEC_PATH,
                     "-m", WHISPER_MODEL_PATH,
                     "-f", audioFilePath,
-                    "--print-language"  // whisper print detected language
+                    "--print-language"  // whisper.cpp flag to print detected language
             );
 
+            //  Start the process
             Process process = pb.start();
 
+            //  Read output from whisper-cli
             try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(process.getInputStream()))) {
+
                 String line;
                 while ((line = reader.readLine()) != null) {
                     System.out.println("[Whisper Output] " + line);
 
-                    // detect language output (whisper prints like: "detected language: xx")
+                    //  Detect language from output (whisper prints like: "detected language: xx")
                     if (line.toLowerCase().contains("detected language:")) {
-                        Pattern p = Pattern.compile("detected language: (\\w+)");
+                        Pattern p = Pattern.compile("detected language:\\s*(\\w+)");
                         Matcher m = p.matcher(line.toLowerCase());
                         if (m.find()) {
                             result.detectedLanguage = m.group(1); // e.g. en, hi, te
                         }
                     } else {
-                        // collect transcription lines
+                        //  Collect transcription text
                         textBuilder.append(line).append(" ");
                     }
                 }
             }
 
-            process.waitFor();
+            //  Wait for whisper process to complete
+            int exitCode = process.waitFor();
+            System.out.println("Whisper process finished with exit code: " + exitCode);
+
+            // Save the transcription into the result object
             result.text = textBuilder.toString().trim();
-            return result;
+
+            return result; //  Return final result
 
         } catch (Exception e) {
-            throw new RuntimeException(" Whisper transcription failed: " + e.getMessage(), e);
+            throw new RuntimeException("Whisper transcription failed: " + e.getMessage(), e);
         }
     }
 }
