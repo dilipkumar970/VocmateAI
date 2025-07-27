@@ -11,13 +11,15 @@ import org.springframework.stereotype.Service;
 public class TwilioService {
 
 
-    private final WhisperService whsiperService;
+    private final WhisperService whisperService;
     private final RecordingService recordingService;
+    private final TranslationService translationService;
+    private final LanguageDetectionService languageDetectionService;
 
-    public  String transcribeSample(String sampleFile) {
-        return whsiperService.transcribeAudio(sampleFile);
-
-    }
+//    public  String transcribeSample(String sampleFile) {
+//        return whisperService.transcribeAudio(sampleFile).toString();
+//
+//    }
 
     public ResponseEntity<String> buildTwiMLGreeting() {
         // TwiML response to speak something to the caller
@@ -33,17 +35,26 @@ public class TwilioService {
         // the HTTP response with a 200 OK status
         // Content-Type header to application/xml (because Twilio expects XML)
         // Sending back the TwiML as the body
+
         return ResponseEntity.ok()
                 .header("Content-Type", "application/xml")
                 .body(twimlResponse);
     }
 
-    public void processRecording(String recordingUrl){
+    public void processRecording(String recordingUrl) {
+        // Step 1: Download recording
+        String filePath = recordingService.downloadRecording(recordingUrl);
 
-        //recordingUrl is like: https://api.twilio.com/XXXXXX.wav
-//        Download the audio locally
-        String localFilePath= recordingService.downloadRecording(recordingUrl);
-        // Here we pass it to Whisper for transcription
-        whsiperService.transcribeAudio(localFilePath);
+        // Step 2: Transcribe using whisper
+        WhisperService.WhisperResult result = whisperService.transcribeAudio(filePath);
+
+        // Step 3: Detect language (fallback if needed)
+        String lang = languageDetectionService.detectLanguage(result.detectedLanguage, result.text);
+
+        // Step 4: Translate if needed
+        String translatedText = translationService.translateText(result.text, lang);
+
+        // Step 5: Send to TTS (to be implemented in next step)
+        System.out.println("✅ Final text for TTS: " + translatedText + " in language: " + lang);
     }
 }

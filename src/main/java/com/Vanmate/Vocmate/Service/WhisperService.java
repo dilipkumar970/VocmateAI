@@ -1,63 +1,66 @@
-package com.Vanmate.Vocmate.Service;
-
-import org.springframework.stereotype.Service;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-
 /**
  * Service responsible for interacting with whisper.cpp to transcribe audio.
  */
+package com.Vanmate.Vocmate.Service;
+
+import org.springframework.stereotype.Service;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 @Service
 public class WhisperService {
 
-    //  Path variable for main executable file
-    private static final String WHISPER_EXEC_PATH =
-            "C:\\web dev\\whisper.cpp\\build\\bin\\Release\\whisper-cli.exe";
+    private static final String WHISPER_EXEC_PATH = "C:\\web dev\\whisper.cpp\\build\\bin\\Release\\whisper-cli.exe";
+    private static final String WHISPER_MODEL_PATH = "C:\\web dev\\whisper.cpp\\models\\ggml-small.bin";
 
-    //  Path variable for model
-    private static final String WHISPER_MODEL_PATH =
-            "C:\\web dev\\whisper.cpp\\models\\ggml-small.bin";
+    // Class to hold both transcription and detected language
+    public static class WhisperResult {
+        public String text;
+        public String detectedLanguage;
+    }
 
-
-    public String transcribeAudio(String audioFilePath) {
-        StringBuilder outputText = new StringBuilder();
+    public WhisperResult transcribeAudio(String audioFilePath) {
+        WhisperResult result = new WhisperResult();
+        StringBuilder textBuilder = new StringBuilder();
 
         try {
-
             ProcessBuilder pb = new ProcessBuilder(
                     WHISPER_EXEC_PATH,
                     "-m", WHISPER_MODEL_PATH,
-                    "-f", audioFilePath
+                    "-f", audioFilePath,
+                    "--print-language"  // whisper print detected language
             );
-
 
             Process process = pb.start();
 
-            // Read output stream
             try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     System.out.println("[Whisper Output] " + line);
-                    outputText.append(line).append("\n");
+
+                    // detect language output (whisper prints like: "detected language: xx")
+                    if (line.toLowerCase().contains("detected language:")) {
+                        Pattern p = Pattern.compile("detected language: (\\w+)");
+                        Matcher m = p.matcher(line.toLowerCase());
+                        if (m.find()) {
+                            result.detectedLanguage = m.group(1); // e.g. en, hi, te
+                        }
+                    } else {
+                        // collect transcription lines
+                        textBuilder.append(line).append(" ");
+                    }
                 }
             }
 
-            // Wait for process to complete
-            int exitCode = process.waitFor();
-            System.out.println(" Whisper process finished with exit code: " + exitCode);
+            process.waitFor();
+            result.text = textBuilder.toString().trim();
+            return result;
 
-        } catch (IOException e) {
-            System.err.println(" IO ERROR WHILE RUNNING WHISPER: " + e.getMessage());
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            System.err.println(" Whisper process was interrupted: " + e.getMessage());
-            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            throw new RuntimeException(" Whisper transcription failed: " + e.getMessage(), e);
         }
-
-        //  Return transcription
-        return outputText.toString().trim();
     }
 }
